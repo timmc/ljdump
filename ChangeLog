@@ -13,6 +13,8 @@ Unreleased
 - Add --quiet option to suppress log messages
 - Allow config file to omit password, in which case ljdump will
   prompt for it
+- Environment variable LJDUMP_CONFIG_PATH allows reading config
+  file from alternative path.
 
 Version 1.5.1 - 2010-12-29
 

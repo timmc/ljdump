@@ -348,8 +348,9 @@ if __name__ == "__main__":
     args.add_argument("--quiet", "-q", action='store_false', dest='verbose',
                       help="reduce log output")
     args = args.parse_args()
-    if os.access("ljdump.config", os.F_OK):
-        config = xml.dom.minidom.parse("ljdump.config")
+    config_path = os.getenv("LJDUMP_CONFIG_PATH", "ljdump.config")
+    if os.access(config_path, os.F_OK):
+        config = xml.dom.minidom.parse(config_path)
         server = config.documentElement.getElementsByTagName("server")[0].childNodes[0].data
         username = config.documentElement.getElementsByTagName("username")[0].childNodes[0].data
         password_els = config.documentElement.getElementsByTagName("password")
