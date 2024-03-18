@@ -2,6 +2,7 @@ ChangeLog - ljdump
 
 Unreleased
 
+- Support (and require) Python 3
 - Prompt for alternative server, defaulting to LJ
 - Use "clear" auth method, since Dreamwidth has dropped challenge
   auth; the challenge method is incompatible with secure password
