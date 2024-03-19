@@ -15,6 +15,8 @@ Unreleased
   prompt for it
 - Environment variable LJDUMP_CONFIG_PATH allows reading config
   file from alternative path.
+- Stable order of fields in XML output. (Tag order is still not
+  stable, but that's coming as one string from the server.)
 
 Version 1.5.1 - 2010-12-29
 

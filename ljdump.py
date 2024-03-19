@@ -59,7 +59,7 @@ def getljsession(server, username, password):
 
 def dumpelement(f, name, e):
     f.write("<%s>\n" % name)
-    for k in list(e.keys()):
+    for k in sorted(list(e.keys())):
         if isinstance(e[k], {}.__class__):
             dumpelement(f, k, e[k])
         else:
@@ -90,7 +90,7 @@ def writelast(journal, lastsync, lastmaxid):
 
 def createxml(doc, name, map):
     e = doc.createElement(name)
-    for k in list(map.keys()):
+    for k in sorted(list(map.keys())):
         me = doc.createElement(k)
         me.appendChild(doc.createTextNode(map[k]))
         e.appendChild(me)
