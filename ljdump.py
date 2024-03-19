@@ -24,9 +24,19 @@
 #
 # Copyright (c) 2005-2010 Greg Hewgill and contributors
 
-import argparse, codecs, os, pickle, pprint, re, shutil, sys, urllib.request, urllib.error, urllib.parse, xml.dom.minidom, xmlrpc.client
+import argparse
+import codecs
+import os
+import pickle
+import pprint
+import re
+import shutil
+import urllib.error
+import urllib.parse
+import urllib.request
+import xml.dom.minidom
+import xmlrpc.client
 from getpass import getpass
-import urllib.request, urllib.parse, urllib.error
 from xml.sax import saxutils
 
 MimeExtensions = {
@@ -77,16 +87,14 @@ def dumpelement(f, name, e):
     f.write("</%s>\n" % name)
 
 def writedump(fn, event):
-    f = codecs.open(fn, "w", "UTF-8")
-    f.write("""<?xml version="1.0"?>\n""")
-    dumpelement(f, "event", event)
-    f.close()
+    with codecs.open(fn, "w", "UTF-8") as f:
+        f.write("""<?xml version="1.0"?>\n""")
+        dumpelement(f, "event", event)
 
 def writelast(journal, lastsync, lastmaxid):
-    f = open("%s/.last" % journal, "w")
-    f.write("%s\n" % lastsync)
-    f.write("%s\n" % lastmaxid)
-    f.close()
+    with open("%s/.last" % journal, "w") as f:
+        f.write("%s\n" % lastsync)
+        f.write("%s\n" % lastmaxid)
 
 def createxml(doc, name, map):
     e = doc.createElement(name)
@@ -133,18 +141,17 @@ def ljdump(Server, Username, Password, Journal, verbose=True):
     lastsync = ""
     lastmaxid = 0
     try:
-        f = open("%s/.last" % Journal, "r")
-        lastsync = f.readline()
-        if lastsync[-1] == '\n':
-            lastsync = lastsync[:len(lastsync)-1]
-        lastmaxid = f.readline()
-        if len(lastmaxid) > 0 and lastmaxid[-1] == '\n':
-            lastmaxid = lastmaxid[:len(lastmaxid)-1]
-        if lastmaxid == "":
-            lastmaxid = 0
-        else:
-            lastmaxid = int(lastmaxid)
-        f.close()
+        with open("%s/.last" % Journal, "r") as f:
+            lastsync = f.readline()
+            if lastsync[-1] == '\n':
+                lastsync = lastsync[:len(lastsync)-1]
+            lastmaxid = f.readline()
+            if len(lastmaxid) > 0 and lastmaxid[-1] == '\n':
+                lastmaxid = lastmaxid[:len(lastmaxid)-1]
+            if lastmaxid == "":
+                lastmaxid = 0
+            else:
+                lastmaxid = int(lastmaxid)
     except:
         pass
     origlastsync = lastsync
@@ -215,16 +222,14 @@ def ljdump(Server, Username, Password, Journal, verbose=True):
         print(("Fetching journal comments for: %s" % Journal))
 
     try:
-        f = open("%s/comment.meta" % Journal, "rb")
-        metacache = pickle.load(f)
-        f.close()
+        with open("%s/comment.meta" % Journal, "rb") as f:
+            metacache = pickle.load(f)
     except:
         metacache = {}
 
     try:
-        f = open("%s/user.map" % Journal, "rb")
-        usermap = pickle.load(f)
-        f.close()
+        with open("%s/user.map" % Journal, "rb") as f:
+            usermap = pickle.load(f)
     except:
         usermap = {}
 
@@ -256,13 +261,11 @@ def ljdump(Server, Username, Password, Journal, verbose=True):
         if maxid >= int(meta.getElementsByTagName("maxid")[0].firstChild.nodeValue):
             break
 
-    f = open("%s/comment.meta" % Journal, "wb")
-    pickle.dump(metacache, f)
-    f.close()
+    with open("%s/comment.meta" % Journal, "wb") as f:
+        pickle.dump(metacache, f)
 
-    f = open("%s/user.map" % Journal, "wb")
-    pickle.dump(usermap, f)
-    f.close()
+    with open("%s/user.map" % Journal, "wb") as f:
+        pickle.dump(usermap, f)
 
     newmaxid = maxid
     maxid = lastmaxid
@@ -303,9 +306,8 @@ def ljdump(Server, Username, Password, Journal, verbose=True):
                 print("Warning: downloaded duplicate comment id %d in jitemid %s" % (id, jitemid))
             else:
                 entry.documentElement.appendChild(createxml(entry, "comment", comment))
-                f = codecs.open("%s/C-%s" % (Journal, jitemid), "w", "UTF-8")
-                entry.writexml(f)
-                f.close()
+                with codecs.open("%s/C-%s" % (Journal, jitemid), "w", "UTF-8") as f:
+                    entry.writexml(f)
                 newcomments += 1
             if id > maxid:
                 maxid = id
@@ -319,26 +321,23 @@ def ljdump(Server, Username, Password, Journal, verbose=True):
     if Username == Journal:
         if verbose:
             print(("Fetching userpics for: %s" % Username))
-        f = open("%s/userpics.xml" % Username, "w")
-        print("""<?xml version="1.0"?>""", file=f)
-        print("<userpics>", file=f)
-        for p in userpics:
-            print("""<userpic keyword="%s" url="%s" />""" % (p, userpics[p]), file=f)
-            pic = urllib.request.urlopen(userpics[p])
-            ext = MimeExtensions.get(pic.info()["Content-Type"], "")
-            picfn = re.sub(r'[*?\\/:<>"|]', "_", p)
-            try:
-                picfn = codecs.utf_8_decode(picfn)[0]
-                picf = open("%s/%s%s" % (Username, picfn, ext), "wb")
-            except:
-                # for installations where the above utf_8_decode doesn't work
-                picfn = "".join([ord(x) < 128 and x or "_" for x in picfn])
-                picf = open("%s/%s%s" % (Username, picfn, ext), "wb")
-            shutil.copyfileobj(pic, picf)
-            pic.close()
-            picf.close()
-        print("</userpics>", file=f)
-        f.close()
+        with open("%s/userpics.xml" % Username, "w") as f:
+            print("""<?xml version="1.0"?>""", file=f)
+            print("<userpics>", file=f)
+            for p in userpics:
+                print("""<userpic keyword="%s" url="%s" />""" % (p, userpics[p]), file=f)
+                pic = urllib.request.urlopen(userpics[p])
+                ext = MimeExtensions.get(pic.info()["Content-Type"], "")
+                picfn = re.sub(r'[*?\\/:<>"|]', "_", p)
+                try:
+                    picfn = codecs.utf_8_decode(picfn)[0]
+                except:
+                    # for installations where the above utf_8_decode doesn't work
+                    picfn = "".join([ord(x) < 128 and x or "_" for x in picfn])
+                with open("%s/%s%s" % (Username, picfn, ext), "wb") as picf:
+                    shutil.copyfileobj(pic, picf)
+                pic.close()
+            print("</userpics>", file=f)
 
     if verbose or (newentries > 0 or newcomments > 0):
         if origlastsync:
