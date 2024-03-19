@@ -38,12 +38,12 @@ MimeExtensions = {
 def flatresponse(response):
     r = {}
     while True:
-        name = response.readline()
+        name = response.readline().decode()
         if len(name) == 0:
             break
         if name[-1] == '\n':
             name = name[:len(name)-1]
-        value = response.readline()
+        value = response.readline().decode()
         if value[-1] == '\n':
             value = value[:len(value)-1]
         r[name] = value
@@ -52,7 +52,7 @@ def flatresponse(response):
 def getljsession(server, username, password):
     """Log in with password and get session cookie."""
     qs = "mode=sessiongenerate&user=%s&auth_method=clear&password=%s" % (urllib.parse.quote(username), urllib.parse.quote(password))
-    r = urllib.request.urlopen(server+"/interface/flat", qs)
+    r = urllib.request.urlopen(server+"/interface/flat", qs.encode())
     response = flatresponse(r)
     r.close()
     return response['ljsession']
@@ -63,11 +63,16 @@ def dumpelement(f, name, e):
         if isinstance(e[k], {}.__class__):
             dumpelement(f, k, e[k])
         else:
-            try:
-                s = str(str(e[k]), "UTF-8")
-            except UnicodeDecodeError:
-                # fall back to Latin-1 for old entries that aren't UTF-8
-                s = str(str(e[k]), "cp1252")
+            # Some post bodies are strings, some are Binary. Probably
+            # the latter only occurs when there's non-ASCII in a post.
+            if isinstance(e[k], xmlrpc.client.Binary):
+                try:
+                    s = e[k].data.decode()
+                except UnicodeDecodeError:
+                    # fall back to Latin-1 for old entries that aren't UTF-8
+                    s = e[k].data.decode("cp1252")
+            else:
+                s = str(e[k])
             f.write("<%s>%s</%s>\n" % (k, saxutils.escape(s), k))
     f.write("</%s>\n" % name)
 
@@ -210,14 +215,14 @@ def ljdump(Server, Username, Password, Journal, verbose=True):
         print(("Fetching journal comments for: %s" % Journal))
 
     try:
-        f = open("%s/comment.meta" % Journal)
+        f = open("%s/comment.meta" % Journal, "rb")
         metacache = pickle.load(f)
         f.close()
     except:
         metacache = {}
 
     try:
-        f = open("%s/user.map" % Journal)
+        f = open("%s/user.map" % Journal, "rb")
         usermap = pickle.load(f)
         f.close()
     except:
@@ -251,11 +256,11 @@ def ljdump(Server, Username, Password, Journal, verbose=True):
         if maxid >= int(meta.getElementsByTagName("maxid")[0].firstChild.nodeValue):
             break
 
-    f = open("%s/comment.meta" % Journal, "w")
+    f = open("%s/comment.meta" % Journal, "wb")
     pickle.dump(metacache, f)
     f.close()
 
-    f = open("%s/user.map" % Journal, "w")
+    f = open("%s/user.map" % Journal, "wb")
     pickle.dump(usermap, f)
     f.close()
 
