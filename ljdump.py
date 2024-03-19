@@ -62,9 +62,8 @@ def flatresponse(response):
 def getljsession(server, username, password):
     """Log in with password and get session cookie."""
     qs = f"mode=sessiongenerate&user={urllib.parse.quote(username)}&auth_method=clear&password={urllib.parse.quote(password)}"
-    r = urllib.request.urlopen(server+"/interface/flat", qs.encode())
-    response = flatresponse(r)
-    r.close()
+    with urllib.request.urlopen(server+"/interface/flat", qs.encode()) as r:
+        response = flatresponse(r)
     return response['ljsession']
 
 def dumpelement(f, name, e):
@@ -236,18 +235,12 @@ def ljdump(Server, Username, Password, Journal, verbose=True):
     maxid = lastmaxid
     while True:
         try:
-            try:
-                r = urllib.request.urlopen(urllib.request.Request(Server + f"/export_comments.bml?get=comment_meta&startid={maxid+1}{authas}", headers = {'Cookie': "ljsession="+ljsession}))
+            with urllib.request.urlopen(urllib.request.Request(Server + f"/export_comments.bml?get=comment_meta&startid={maxid+1}{authas}", headers = {'Cookie': "ljsession="+ljsession})) as r:
                 meta = xml.dom.minidom.parse(r)
-            except Exception as x:
-                print("*** Error fetching comment meta, possibly not community maintainer?")
-                print("***", x)
-                break
-        finally:
-            try:
-                r.close()
-            except AttributeError: # r is sometimes a dict for unknown reasons
-                pass
+        except Exception as x:
+            print("*** Error fetching comment meta, possibly not community maintainer?")
+            print("***", x)
+            break
         for c in meta.getElementsByTagName("comment"):
             id = int(c.getAttribute("id"))
             metacache[id] = {
@@ -271,15 +264,12 @@ def ljdump(Server, Username, Password, Journal, verbose=True):
     maxid = lastmaxid
     while True:
         try:
-            try:
-                r = urllib.request.urlopen(urllib.request.Request(Server + f"/export_comments.bml?get=comment_body&startid={maxid+1}{authas}", headers = {'Cookie': "ljsession="+ljsession}))
+            with urllib.request.urlopen(urllib.request.Request(Server + f"/export_comments.bml?get=comment_body&startid={maxid+1}{authas}", headers = {'Cookie': "ljsession="+ljsession})) as r:
                 meta = xml.dom.minidom.parse(r)
-            except Exception as x:
-                print("*** Error fetching comment body, possibly not community maintainer?")
-                print("***", x)
-                break
-        finally:
-            r.close()
+        except Exception as x:
+            print("*** Error fetching comment body, possibly not community maintainer?")
+            print("***", x)
+            break
         for c in meta.getElementsByTagName("comment"):
             id = int(c.getAttribute("id"))
             jitemid = c.getAttribute("jitemid")
@@ -326,17 +316,16 @@ def ljdump(Server, Username, Password, Journal, verbose=True):
             print("<userpics>", file=f)
             for p in userpics:
                 print(f'<userpic keyword="{p}" url="{userpics[p]}" />', file=f)
-                pic = urllib.request.urlopen(userpics[p])
-                ext = MimeExtensions.get(pic.info()["Content-Type"], "")
-                picfn = re.sub(r'[*?\\/:<>"|]', "_", p)
-                try:
-                    picfn = codecs.utf_8_decode(picfn)[0]
-                except:
-                    # for installations where the above utf_8_decode doesn't work
-                    picfn = "".join([ord(x) < 128 and x or "_" for x in picfn])
-                with open(f"{Username}/{picfn}{ext}", "wb") as picf:
-                    shutil.copyfileobj(pic, picf)
-                pic.close()
+                with urllib.request.urlopen(userpics[p]) as pic:
+                    ext = MimeExtensions.get(pic.info()["Content-Type"], "")
+                    picfn = re.sub(r'[*?\\/:<>"|]', "_", p)
+                    try:
+                        picfn = codecs.utf_8_decode(picfn)[0]
+                    except:
+                        # for installations where the above utf_8_decode doesn't work
+                        picfn = "".join([ord(x) < 128 and x or "_" for x in picfn])
+                    with open(f"{Username}/{picfn}{ext}", "wb") as picf:
+                        shutil.copyfileobj(pic, picf)
             print("</userpics>", file=f)
 
     if verbose or (newentries > 0 or newcomments > 0):
