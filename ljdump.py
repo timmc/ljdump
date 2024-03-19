@@ -86,12 +86,12 @@ def dumpelement(f, name, e):
     f.write(f"</{name}>\n")
 
 def writedump(fn, event):
-    with codecs.open(fn, "w", "UTF-8") as f:
+    with codecs.open(fn, "w", encoding='utf-8') as f:
         f.write("""<?xml version="1.0"?>\n""")
         dumpelement(f, "event", event)
 
 def writelast(journal, lastsync, lastmaxid):
-    with open(f"{journal}/.last", "w") as f:
+    with open(f"{journal}/.last", "w", encoding='utf-8') as f:
         f.write(f"{lastsync}\n")
         f.write(f"{lastmaxid}\n")
 
@@ -140,7 +140,7 @@ def ljdump(Server, Username, Password, Journal, verbose=True):
     lastsync = ""
     lastmaxid = 0
     try:
-        with open(f"{Journal}/.last", "r") as f:
+        with open(f"{Journal}/.last", "r", encoding='utf-8') as f:
             lastsync = f.readline()
             if lastsync[-1] == '\n':
                 lastsync = lastsync[:len(lastsync)-1]
@@ -296,7 +296,7 @@ def ljdump(Server, Username, Password, Journal, verbose=True):
                 print(f"Warning: downloaded duplicate comment id {id} in jitemid {jitemid}")
             else:
                 entry.documentElement.appendChild(createxml(entry, "comment", comment))
-                with codecs.open(f"{Journal}/C-{jitemid}", "w", "UTF-8") as f:
+                with codecs.open(f"{Journal}/C-{jitemid}", "w", encoding='utf-8') as f:
                     entry.writexml(f)
                 newcomments += 1
             if id > maxid:
@@ -311,7 +311,7 @@ def ljdump(Server, Username, Password, Journal, verbose=True):
     if Username == Journal:
         if verbose:
             print(f"Fetching userpics for: {Username}")
-        with open(f"{Username}/userpics.xml", "w") as f:
+        with open(f"{Username}/userpics.xml", "w", encoding='utf-8') as f:
             print("""<?xml version="1.0"?>""", file=f)
             print("<userpics>", file=f)
             for p in userpics:
