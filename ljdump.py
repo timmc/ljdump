@@ -61,14 +61,14 @@ def flatresponse(response):
 
 def getljsession(server, username, password):
     """Log in with password and get session cookie."""
-    qs = "mode=sessiongenerate&user=%s&auth_method=clear&password=%s" % (urllib.parse.quote(username), urllib.parse.quote(password))
+    qs = f"mode=sessiongenerate&user={urllib.parse.quote(username)}&auth_method=clear&password={urllib.parse.quote(password)}"
     r = urllib.request.urlopen(server+"/interface/flat", qs.encode())
     response = flatresponse(r)
     r.close()
     return response['ljsession']
 
 def dumpelement(f, name, e):
-    f.write("<%s>\n" % name)
+    f.write(f"<{name}>\n")
     for k in sorted(list(e.keys())):
         if isinstance(e[k], {}.__class__):
             dumpelement(f, k, e[k])
@@ -83,8 +83,8 @@ def dumpelement(f, name, e):
                     s = e[k].data.decode("cp1252")
             else:
                 s = str(e[k])
-            f.write("<%s>%s</%s>\n" % (k, saxutils.escape(s), k))
-    f.write("</%s>\n" % name)
+            f.write(f"<{k}>{saxutils.escape(s)}</{k}>\n")
+    f.write(f"</{name}>\n")
 
 def writedump(fn, event):
     with codecs.open(fn, "w", "UTF-8") as f:
@@ -92,9 +92,9 @@ def writedump(fn, event):
         dumpelement(f, "event", event)
 
 def writelast(journal, lastsync, lastmaxid):
-    with open("%s/.last" % journal, "w") as f:
-        f.write("%s\n" % lastsync)
-        f.write("%s\n" % lastmaxid)
+    with open(f"{journal}/.last", "w") as f:
+        f.write(f"{lastsync}\n")
+        f.write(f"{lastmaxid}\n")
 
 def createxml(doc, name, map):
     e = doc.createElement(name)
@@ -114,15 +114,15 @@ def ljdump(Server, Username, Password, Journal, verbose=True):
     if m:
         Server = m.group(1)
     if Username != Journal:
-        authas = "&authas=%s" % Journal
+        authas = f"&authas={Journal}"
     else:
         authas = ""
 
     if verbose:
-        print(("Fetching journal entries for: %s" % Journal))
+        print(f"Fetching journal entries for: {Journal}")
     try:
         os.mkdir(Journal)
-        print("Created subdirectory: %s" % Journal)
+        print(f"Created subdirectory: {Journal}")
     except:
         pass
 
@@ -141,7 +141,7 @@ def ljdump(Server, Username, Password, Journal, verbose=True):
     lastsync = ""
     lastmaxid = 0
     try:
-        with open("%s/.last" % Journal, "r") as f:
+        with open(f"{Journal}/.last", "r") as f:
             lastsync = f.readline()
             if lastsync[-1] == '\n':
                 lastsync = lastsync[:len(lastsync)-1]
@@ -176,7 +176,7 @@ def ljdump(Server, Username, Password, Journal, verbose=True):
             break
         for item in r['syncitems']:
             if item['item'][0] == 'L':
-                print("Fetching journal entry %s (%s)" % (item['item'], item['action']))
+                print(f"Fetching journal entry {item['item']} ({item['action']})")
                 try:
                     e = server.LJ.XMLRPC.getevents(authed({
                         'ver': 1,
@@ -185,13 +185,13 @@ def ljdump(Server, Username, Password, Journal, verbose=True):
                         'usejournal': Journal,
                     }))
                     if e['events']:
-                        writedump("%s/%s" % (Journal, item['item']), e['events'][0])
+                        writedump(f"{Journal}/{item['item']}", e['events'][0])
                         newentries += 1
                     else:
-                        print("Unexpected empty item: %s" % item['item'])
+                        print(f"Unexpected empty item: {item['item']}")
                         errors += 1
                 except xmlrpc.client.Fault as x:
-                    print("Error getting item: %s" % item['item'])
+                    print(f"Error getting item: {item['item']}")
                     pprint.pprint(x)
                     errors += 1
             lastsync = item['time']
@@ -214,21 +214,21 @@ def ljdump(Server, Username, Password, Journal, verbose=True):
     #    if len(r['events']) == 0:
     #        break
     #    for item in r['events']:
-    #        writedump("%s/L-%d" % (Journal, item['itemid']), item)
+    #        writedump(f"{Journal}/L-{item['itemid']}", item)
     #        newentries += 1
     #        lastsync = item['eventtime']
 
     if verbose:
-        print(("Fetching journal comments for: %s" % Journal))
+        print(f"Fetching journal comments for: {Journal}")
 
     try:
-        with open("%s/comment.meta" % Journal, "rb") as f:
+        with open(f"{Journal}/comment.meta", "rb") as f:
             metacache = pickle.load(f)
     except:
         metacache = {}
 
     try:
-        with open("%s/user.map" % Journal, "rb") as f:
+        with open(f"{Journal}/user.map", "rb") as f:
             usermap = pickle.load(f)
     except:
         usermap = {}
@@ -237,7 +237,7 @@ def ljdump(Server, Username, Password, Journal, verbose=True):
     while True:
         try:
             try:
-                r = urllib.request.urlopen(urllib.request.Request(Server+"/export_comments.bml?get=comment_meta&startid=%d%s" % (maxid+1, authas), headers = {'Cookie': "ljsession="+ljsession}))
+                r = urllib.request.urlopen(urllib.request.Request(Server + f"/export_comments.bml?get=comment_meta&startid={maxid+1}{authas}", headers = {'Cookie': "ljsession="+ljsession}))
                 meta = xml.dom.minidom.parse(r)
             except Exception as x:
                 print("*** Error fetching comment meta, possibly not community maintainer?")
@@ -261,10 +261,10 @@ def ljdump(Server, Username, Password, Journal, verbose=True):
         if maxid >= int(meta.getElementsByTagName("maxid")[0].firstChild.nodeValue):
             break
 
-    with open("%s/comment.meta" % Journal, "wb") as f:
+    with open(f"{Journal}/comment.meta", "wb") as f:
         pickle.dump(metacache, f)
 
-    with open("%s/user.map" % Journal, "wb") as f:
+    with open(f"{Journal}/user.map", "wb") as f:
         pickle.dump(usermap, f)
 
     newmaxid = maxid
@@ -272,7 +272,7 @@ def ljdump(Server, Username, Password, Journal, verbose=True):
     while True:
         try:
             try:
-                r = urllib.request.urlopen(urllib.request.Request(Server+"/export_comments.bml?get=comment_body&startid=%d%s" % (maxid+1, authas), headers = {'Cookie': "ljsession="+ljsession}))
+                r = urllib.request.urlopen(urllib.request.Request(Server + f"/export_comments.bml?get=comment_body&startid={maxid+1}{authas}", headers = {'Cookie': "ljsession="+ljsession}))
                 meta = xml.dom.minidom.parse(r)
             except Exception as x:
                 print("*** Error fetching comment body, possibly not community maintainer?")
@@ -294,7 +294,7 @@ def ljdump(Server, Username, Password, Journal, verbose=True):
             if c.getAttribute("posterid") in usermap:
                 comment["user"] = usermap[c.getAttribute("posterid")]
             try:
-                entry = xml.dom.minidom.parse("%s/C-%s" % (Journal, jitemid))
+                entry = xml.dom.minidom.parse(f"{Journal}/C-{jitemid}")
             except:
                 entry = xml.dom.minidom.getDOMImplementation().createDocument(None, "comments", None)
             found = False
@@ -303,10 +303,10 @@ def ljdump(Server, Username, Password, Journal, verbose=True):
                     found = True
                     break
             if found:
-                print("Warning: downloaded duplicate comment id %d in jitemid %s" % (id, jitemid))
+                print(f"Warning: downloaded duplicate comment id {id} in jitemid {jitemid}")
             else:
                 entry.documentElement.appendChild(createxml(entry, "comment", comment))
-                with codecs.open("%s/C-%s" % (Journal, jitemid), "w", "UTF-8") as f:
+                with codecs.open(f"{Journal}/C-{jitemid}", "w", "UTF-8") as f:
                     entry.writexml(f)
                 newcomments += 1
             if id > maxid:
@@ -320,12 +320,12 @@ def ljdump(Server, Username, Password, Journal, verbose=True):
 
     if Username == Journal:
         if verbose:
-            print(("Fetching userpics for: %s" % Username))
-        with open("%s/userpics.xml" % Username, "w") as f:
+            print(f"Fetching userpics for: {Username}")
+        with open(f"{Username}/userpics.xml", "w") as f:
             print("""<?xml version="1.0"?>""", file=f)
             print("<userpics>", file=f)
             for p in userpics:
-                print("""<userpic keyword="%s" url="%s" />""" % (p, userpics[p]), file=f)
+                print(f'<userpic keyword="{p}" url="{userpics[p]}" />', file=f)
                 pic = urllib.request.urlopen(userpics[p])
                 ext = MimeExtensions.get(pic.info()["Content-Type"], "")
                 picfn = re.sub(r'[*?\\/:<>"|]', "_", p)
@@ -334,18 +334,18 @@ def ljdump(Server, Username, Password, Journal, verbose=True):
                 except:
                     # for installations where the above utf_8_decode doesn't work
                     picfn = "".join([ord(x) < 128 and x or "_" for x in picfn])
-                with open("%s/%s%s" % (Username, picfn, ext), "wb") as picf:
+                with open(f"{Username}/{picfn}{ext}", "wb") as picf:
                     shutil.copyfileobj(pic, picf)
                 pic.close()
             print("</userpics>", file=f)
 
     if verbose or (newentries > 0 or newcomments > 0):
         if origlastsync:
-            print(("%d new entries, %d new comments (since %s)" % (newentries, newcomments, origlastsync)))
+            print(f"{newentries} new entries, {newcomments} new comments (since {origlastsync})")
         else:
-            print(("%d new entries, %d new comments" % (newentries, newcomments)))
+            print(f"{newentries} new entries, {newcomments} new comments")
     if errors > 0:
-        print("%d errors" % errors)
+        print(f"{errors} errors")
 
 if __name__ == "__main__":
     args = argparse.ArgumentParser(description="Livejournal archive utility")
@@ -369,7 +369,7 @@ if __name__ == "__main__":
         print("ljdump - livejournal archiver")
         print()
         default_server = "https://livejournal.com"
-        server = input("Alternative server to use (e.g. 'https://www.dreamwidth.org'), or hit return for '%s': " % default_server) or default_server
+        server = input(f"Alternative server to use (e.g. 'https://www.dreamwidth.org'), or hit return for '{default_server}': ") or default_server
         print()
         print("Enter your Livejournal username and password.")
         print()
@@ -380,7 +380,7 @@ if __name__ == "__main__":
         print("If you are a community maintainer, you can back up both entries and comments.")
         print("If you are not a maintainer, you can back up only entries.")
         print()
-        journal = input("Journal to back up (or hit return to back up '%s'): " % username)
+        journal = input(f"Journal to back up (or hit return to back up '{username}'): ")
         print()
         if journal:
             journals = [journal]
