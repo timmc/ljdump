@@ -1,4 +1,4 @@
-ljdump - livejournal archiver
+ljdump - livejournal (or Dreamwidth) archiver
 
 This program reads the journal entries from a livejournal (or compatible)
 blog site and archives them in a subdirectory named after the journal name.

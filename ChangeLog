@@ -1,6 +1,6 @@
 ChangeLog - ljdump
 
-Unreleased
+Version 2.0.0 - 2024-09-01
 
 - Support (and require) Python 3
 - Prompt for alternative server, defaulting to LJ
